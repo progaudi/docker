@@ -1,10 +1,12 @@
 FROM centos:7
 MAINTAINER mail@racktear.com
 
+ARG TARANTOOL_VERSION
+
 RUN groupadd tarantool \
     && adduser -g tarantool tarantool
 
-ENV TARANTOOL_VERSION=1.7.5-0-g24b70de10 \
+ENV TARANTOOL_VERSION=${TARANTOOL_VERSION}} \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
     TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
     LUAROCKS_URL=http://keplerproject.github.io/luarocks/releases/luarocks-2.3.0.tar.gz \
@@ -57,6 +59,7 @@ RUN set -x \
         zip \
         libunwind \
         libcurl \
+        libicu \
     && yum -y install \
         perl \
         gcc-c++ \
@@ -77,6 +80,7 @@ RUN set -x \
         go \
         wget \
         curl-devel \
+        libicu-devel \
     && : "---------- gperftools ----------" \
     && yum install -y gperftools-libs \
     && (GOPATH=/usr/src/go go get github.com/google/pprof; \
@@ -85,6 +89,9 @@ RUN set -x \
     && mkdir -p /usr/src/tarantool \
     && git clone "$TARANTOOL_DOWNLOAD_URL" /usr/src/tarantool \
     && (cd /usr/src/tarantool; git checkout "$TARANTOOL_VERSION";) \
+    && echo "----------------------------------------------" \
+    && echo "Building tarantool v"${TARANTOOL_VERSION} \
+    && echo "----------------------------------------------" \
     && (cd /usr/src/tarantool; git submodule update --init --recursive;) \
     && (cd /usr/src/tarantool; \
        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo\

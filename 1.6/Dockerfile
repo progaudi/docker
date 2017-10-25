@@ -1,11 +1,13 @@
 FROM alpine:3.5
 MAINTAINER mail@racktear.com
 
+ARG TARANTOOL_VERSION
+
 RUN addgroup -S tarantool \
     && adduser -S -G tarantool tarantool \
     && apk add --no-cache 'su-exec>=0.2'
 
-ENV TARANTOOL_VERSION=1.6.9-11-gf4619d0 \
+ENV TARANTOOL_VERSION=${TARANTOOL_VERSION}} \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
     TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
     GPERFTOOLS_REPO=https://github.com/gperftools/gperftools.git \
@@ -92,6 +94,9 @@ RUN set -x \
     && : "---------- tarantool ----------" \
     && mkdir -p /usr/src/tarantool \
     && git clone "$TARANTOOL_DOWNLOAD_URL" /usr/src/tarantool \
+    && echo "----------------------------------------------" \
+    && echo "Building tarantool v"${TARANTOOL_VERSION} \
+    && echo "----------------------------------------------" \
     && git -C /usr/src/tarantool checkout "$TARANTOOL_VERSION" \
     && git -C /usr/src/tarantool submodule update --init --recursive \
     && (cd /usr/src/tarantool; \
@@ -146,6 +151,7 @@ RUN set -x \
         libcurl \
         mosquitto-libs \
         libev \
+        icu \
     && apk add --no-cache --virtual .build-deps \
         git \
         cmake \
@@ -159,6 +165,7 @@ RUN set -x \
         curl-dev \
         mosquitto-dev \
         libev-dev \
+        icu-dev \
     && : "---------- proj (for gis module) ----------" \
     && wget -O proj.tar.gz http://download.osgeo.org/proj/proj-4.9.3.tar.gz \
     && mkdir -p /usr/src/proj \
