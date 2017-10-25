@@ -4,7 +4,6 @@ set -e
 
 pushd ${BASH_SOURCE%/*}/
 
-TARANTOOL_VERSION=1.7.5-0-g24b70de10
 REPOSITORY=aensidhe/tarantool
 
 # $TARANTOOL_VERSION: 1.6.9-11-gf4619d0, 1.7.5-0-g24b70de10, 1.8.1-415-ge3d2485c7
@@ -32,6 +31,9 @@ do
     pushd $dir
 
     docker build -t $REPOSITORY:$major -t $REPOSITORY:$minor -t $REPOSITORY:$TARANTOOL_VERSION --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION .
+    docker push $REPOSITORY:$major
+    docker push $REPOSITORY:$minor
+    docker push $REPOSITORY:$TARANTOOL_VERSION
 
     popd
 done

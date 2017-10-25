@@ -1,0 +1,5 @@
+env:
+    TARANTOOL_VERSION=1.7.5-185-g1ebaad6
+
+script:
+  - ./build-image.sh
