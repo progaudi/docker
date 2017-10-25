@@ -4,7 +4,7 @@ set -e
 
 pushd ${BASH_SOURCE%/*}/
 
-REPOSITORY=aensidhe/tarantool
+REPOSITORY=progaudi/tarantool
 
 # $TARANTOOL_VERSION: 1.6.9-11-gf4619d0, 1.7.5-0-g24b70de10, 1.8.1-415-ge3d2485c7
 
