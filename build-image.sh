@@ -4,9 +4,9 @@ set -e
 
 pushd ${BASH_SOURCE%/*}/
 
+# TARANTOOL_VERSION: 1.6.9-11-gf4619d0, 1.7.5-0-g24b70de10, 1.8.1-415-ge3d2485c7
+# TARANTOOL_VERSION=1.7.5-0-g24b70de10
 REPOSITORY=progaudi/tarantool
-
-# $TARANTOOL_VERSION: 1.6.9-11-gf4619d0, 1.7.5-0-g24b70de10, 1.8.1-415-ge3d2485c7
 
 # split by .
 IFS=. read -ra version_slugs <<< "$TARANTOOL_VERSION"
@@ -24,15 +24,16 @@ if [ ${#minor_slugs[@]} != 3 ]; then
     exit 2
 fi
 
-minor=${minor_slugs[0]}
+minor=$major.${minor_slugs[0]}
 
 docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
 
-for dir in $major*/ ;
+for dir in $major* ;
 do
     pushd $dir
 
-    $tail=${dir#$major}
+
+    tail=${dir#$major}
     docker build -t $REPOSITORY:$major$tail -t $REPOSITORY:$minor$tail -t $REPOSITORY:$TARANTOOL_VERSION$tail --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION .
     docker push $REPOSITORY:$major$tail
     docker push $REPOSITORY:$minor$tail
