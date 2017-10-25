@@ -24,7 +24,7 @@ if [ ${#minor_slugs[@]} != 3 ]; then
     exit 2
 fi
 
-minor=$major.${minor_slugs[0]}
+minor=${minor_slugs[0]}
 
 docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
 
@@ -32,10 +32,11 @@ for dir in $major*/ ;
 do
     pushd $dir
 
-    docker build -t $REPOSITORY:$major -t $REPOSITORY:$minor -t $REPOSITORY:$TARANTOOL_VERSION --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION .
-    docker push $REPOSITORY:$major
-    docker push $REPOSITORY:$minor
-    docker push $REPOSITORY:$TARANTOOL_VERSION
+    $tail=${dir#$major}
+    docker build -t $REPOSITORY:$major$tail -t $REPOSITORY:$minor$tail -t $REPOSITORY:$TARANTOOL_VERSION$tail --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION .
+    docker push $REPOSITORY:$major$tail
+    docker push $REPOSITORY:$minor$tail
+    docker push $REPOSITORY:$TARANTOOL_VERSION$tail
 
     popd
 done
