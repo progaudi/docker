@@ -4,7 +4,7 @@ set -e
 
 pushd ${BASH_SOURCE%/*}/
 
-if [! -d .tarantool ]
+if [ ! -d .tarantool ]
 then
     git clone git@github.com:tarantool/tarantool.git .tarantool
 fi
