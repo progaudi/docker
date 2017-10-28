@@ -4,6 +4,19 @@ set -e
 
 pushd ${BASH_SOURCE%/*}/
 
+if [! -d .tarantool ]
+then
+    git clone git@github.com:tarantool/tarantool.git .tarantool
+fi
+
+pushd .tarantool
+
+git checkout $TARANTOOL_BRANCH
+git pull
+TARANTOOL_VERSION=$(git describe)
+
+popd
+
 # TARANTOOL_VERSION: 1.6.9-11-gf4619d0, 1.7.5-0-g24b70de10, 1.8.1-415-ge3d2485c7
 # TARANTOOL_VERSION=1.7.5-0-g24b70de10
 REPOSITORY=progaudi/tarantool
