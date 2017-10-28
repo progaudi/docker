@@ -7,7 +7,7 @@ pushd ${BASH_SOURCE%/*}/
 if [ ! -d .tarantool/.git ]
 then
     rm -rf .tarantool
-    git clone git@github.com:tarantool/tarantool.git .tarantool
+    git clone git://github.com/tarantool/tarantool.git .tarantool
 fi
 
 pushd .tarantool
