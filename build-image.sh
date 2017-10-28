@@ -14,6 +14,7 @@ pushd .tarantool
 git checkout $TARANTOOL_BRANCH
 git pull
 TARANTOOL_VERSION=$(git describe)
+echo "Will build $TARANTOOL_VERSION from branch: $TARANTOOL_BRANCH"
 
 popd
 
