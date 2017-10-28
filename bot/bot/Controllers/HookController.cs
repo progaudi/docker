@@ -41,18 +41,20 @@ namespace Progaudi.Tarantool.Bot.Controllers
             }
         }
 
-        private Task<HttpResponseMessage> TriggerBuild(string branch)
+        private static async Task<HttpResponseMessage> TriggerBuild(string branch)
         {
             using (var client = new HttpClient())
             {
                 var message = new HttpRequestMessage(HttpMethod.Post, "https://api.travis-ci.org/repo/progaudi%2Ftarantool-docker/requests ");
                 message.Headers.Accept.ParseAdd("application/json");
-                var json = "\'{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\"}}}}";
-                message.Content = new StringContent(json, Encoding.UTF8, "application/json");
                 message.Headers.Add("Travis-API-Version", "3");
                 message.Headers.Authorization = new AuthenticationHeaderValue("token", Startup.TravisToken);
+                message.Content = new StringContent(
+                    "{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\"}}}}",
+                    Encoding.UTF8,
+                    "application/json");
 
-                return client.SendAsync(message);
+                return await client.SendAsync(message);
             }
         }
     }
