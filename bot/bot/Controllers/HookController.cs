@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Progaudi.Tarantool.Bot.Controllers
 {
@@ -13,23 +14,35 @@ namespace Progaudi.Tarantool.Bot.Controllers
     public class HookController : Controller
     {
         private static readonly Regex HeadExtractor = new Regex("\"ref\": \"refs/heads/(?<version>1.\\d+)\"", RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        private readonly ILogger<HookController> _logger;
+
+        public HookController(ILogger<HookController> logger)
+        {
+            _logger = logger;
+        }
 
         [HttpPost]
         public async Task<IActionResult> Post()
         {
             var value = await GetStringFromBody(Request.Body);
             var version = HeadExtractor.Match(value).Groups["version"].Value;
+            _logger.LogWarning("Version = {Version}, value = {value}", version, value);
 
+            var statusCode = 200;
             switch (version)
             {
                 case "1.6":
                 case "1.7":
                 case "1.8":
                     var response = await TriggerBuild(version);
-                    return new StatusCodeResult((int) response.StatusCode);
+                    statusCode = (int) response.StatusCode;
+                    break;
             }
 
-            return Ok();
+            return new ObjectResult(new { version, value })
+            {
+                StatusCode = statusCode
+            };
         }
 
         private static async Task<string> GetStringFromBody(Stream requestBody)
