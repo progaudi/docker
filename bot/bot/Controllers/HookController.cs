@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -11,10 +13,6 @@ namespace Progaudi.Tarantool.Bot.Controllers
     [Route("hook")]
     public class HookController : Controller
     {
-        public HookController(IServiceProvider provider)
-        {
-        }
-
         [HttpPost]
         public async Task<IActionResult> Post([FromBody]PushPayload value)
         {
@@ -34,13 +32,12 @@ namespace Progaudi.Tarantool.Bot.Controllers
         {
             using (var client = new HttpClient())
             {
-                var trigger = new Trigger();
-                trigger.Request.Config.Env.Branch = branch;
                 var message = new HttpRequestMessage(HttpMethod.Post, "https://api.travis-ci.org/repo/progaudi%2Ftarantool-docker/requests ");
                 message.Headers.Accept.ParseAdd("application/json");
-                message.Content = new StringContent(JsonConvert.SerializeObject(trigger), Encoding.UTF8, "application/json");
+                var json = "\'{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\"}}}}";
+                message.Content = new StringContent(json, Encoding.UTF8, "application/json");
                 message.Headers.Add("Travis-API-Version", "3");
-                //message.Headers.Authorization = AuthenticationHeaderValue.Parse();
+                message.Headers.Authorization = AuthenticationHeaderValue.Parse(Startup.TravisToken);
 
                 return client.SendAsync(message);
             }
