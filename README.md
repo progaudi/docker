@@ -4,16 +4,19 @@ This image is built on every commit to major branches of [Tarantool](https://git
 
 # Version strategy
 
-Every build of Tarantool from stable branches is tagged (e.g. branch is 1.7): 1.7.5-123-g234dsa, which can be break into parts:
+Every build of Tarantool from stable branches is tagged (e.g. branch is 1.7): 1.7.5-123-g234dsa, which can be broken into parts:
 - 1.7 is major version
 - 5 is minor version
 - 123-g234dsa is build version
 
-When we build such an image, we'll push tags:
+If we would build an image from that commit, we'll push tags:
 - major version (1.7)
 - minor version (1.7.5)
 - package version (1.7.5-123-g234dsa)
 
+In this way we achieve a couple of interesting things. 1.7 is the latest 1.7 build, so if you care only about major version, use this tag. If you care about specific minor version, then stick to minor version tag (1.7.5). But my recommendation is to stick to most detailed tag (package version).
+
 # Image information
 
-Detailed information about image is available in [official repo](https://github.com/tarantool/docker/)
+Source is available at [our github repo](https://github.com/progaudi/tarantool-docker)
+Detailed information about image is available in [official repo](https://github.com/tarantool/docker/).
