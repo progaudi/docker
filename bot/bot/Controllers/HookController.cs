@@ -13,7 +13,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
     [Route("hook")]
     public class HookController : Controller
     {
-        private static readonly Regex HeadExtractor = new Regex("\"ref\": \"refs/heads/(?<version>1.\\d+)\"", RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        private static readonly Regex HeadExtractor = new Regex("\"ref\":\"refs/heads/(?<version>1.\\d+)\"", RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
         private readonly ILogger<HookController> _logger;
 
         public HookController(ILogger<HookController> logger)
