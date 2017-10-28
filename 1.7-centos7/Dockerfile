@@ -155,6 +155,7 @@ RUN set -x \
         kernel-headers \
         golang-src \
         curl-devel \
+        libicu-devel \
     && rpm -qa | grep devel | xargs yum -y remove \
     && rm -rf /var/cache/yum
 
