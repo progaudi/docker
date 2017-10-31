@@ -1,6 +1,6 @@
 # Why another tarantool docker image?
 
-This image is built on every commit to major branches of [Tarantool](https://github.com/tarantool/tarantool/). Sometimes we're updating [packages on board](https://github.com/tarantool/docker/#whats-on-board) to latest versions of them. Goal is simple: we want to provide docker image for every build tarantool package version with latest packages.
+[This image](https://hub.docker.com/r/progaudi/tarantool/) is built on every commit to major branches of [Tarantool](https://github.com/tarantool/tarantool/). Sometimes we're updating [packages on board](https://github.com/tarantool/docker/#whats-on-board) to latest versions of them. Goal is simple: we want to provide docker image for every build tarantool package version with latest packages. If you want more stable version, stick to [official image](https://hub.docker.com/r/tarantool/tarantool/)
 
 # Version strategy
 
