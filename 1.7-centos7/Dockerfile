@@ -194,6 +194,7 @@ RUN set -x \
     && : "---------- luarocks ----------" \
     && luarocks install lua-term \
     && luarocks install ldoc \
+    && luarocks install luautf8 \
     && : "avro" \
     && git clone $LUAROCK_AVRO_SCHEMA_REPO /rocks/avro \
     && (cd /rocks/avro; git checkout $LUAROCK_AVRO_SCHEMA_TAG) \
