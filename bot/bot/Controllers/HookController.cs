@@ -1,19 +1,20 @@
-﻿using System;
-using System.IO;
+﻿using System.Collections.Concurrent;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using MediaTypeHeaderValue = Microsoft.Net.Http.Headers.MediaTypeHeaderValue;
 
 namespace Progaudi.Tarantool.Bot.Controllers
 {
     [Route("hook")]
     public class HookController : Controller
     {
-        private static readonly Regex HeadExtractor = new Regex("\"ref\":\"refs/heads/(?<version>1.\\d+)\"", RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        private static readonly ConcurrentDictionary<string, int> Counters = new ConcurrentDictionary<string, int>();
         private readonly ILogger<HookController> _logger;
 
         public HookController(ILogger<HookController> logger)
@@ -21,12 +22,22 @@ namespace Progaudi.Tarantool.Bot.Controllers
             _logger = logger;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Post()
+        [HttpGet]
+        public IActionResult Get()
         {
-            var value = await GetStringFromBody(Request.Body);
-            var version = HeadExtractor.Match(value).Groups["version"].Value;
-            _logger.LogWarning("Version = {Version}, value = {value}", version, value);
+            var response = Counters.Aggregate(
+                new StringBuilder(),
+                (sb, x) => sb.AppendLine($"progaudi.tarantoo.docker.bot.{x.Key} {x.Value}"),
+                sb => sb.ToString());
+            return Content(response, new MediaTypeHeaderValue("text/plain") { Encoding = Encoding.UTF8 });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Post([FromBody] PushPayload payload)
+        {
+            var version = payload.Ref.Replace("refs/heads/", string.Empty);
+            _logger.LogWarning("Version = {Version}, ref = {Ref}", version, payload.Ref);
+            Counters.AddOrUpdate("requests", 1, (s, i) => i + 1);
 
             var statusCode = 200;
             switch (version)
@@ -36,22 +47,14 @@ namespace Progaudi.Tarantool.Bot.Controllers
                 case "1.8":
                     var response = await TriggerBuild(version);
                     statusCode = (int) response.StatusCode;
+                    Counters.AddOrUpdate($"builds{{version=\"{version}\", code={statusCode}}}", 1, (s, i) => i + 1);
                     break;
             }
 
-            return new ObjectResult(new { version, value })
+            return new ObjectResult(new { version, payload })
             {
                 StatusCode = statusCode
             };
-        }
-
-        private static async Task<string> GetStringFromBody(Stream requestBody)
-        {
-            using (var memory = new MemoryStream())
-            {
-                await requestBody.CopyToAsync(memory);
-                return Encoding.UTF8.GetString(memory.ToArray());
-            }
         }
 
         private static async Task<HttpResponseMessage> TriggerBuild(string branch)
@@ -69,6 +72,12 @@ namespace Progaudi.Tarantool.Bot.Controllers
 
                 return await client.SendAsync(message);
             }
+        }
+
+        public class PushPayload
+        {
+            [JsonProperty("ref")]
+            public string Ref { get; set; }
         }
     }
 }
