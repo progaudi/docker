@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+REPOSITORY=progaudi/tarantool
+
 set -e
 
 pushd ${BASH_SOURCE%/*}/
@@ -15,13 +17,19 @@ pushd .tarantool
 git checkout $TARANTOOL_BRANCH
 git pull
 TARANTOOL_VERSION=$(git describe)
-echo "Will build $TARANTOOL_VERSION from branch: $TARANTOOL_BRANCH"
 
 popd
 
+if docker pull $REPOSITORY:$TARANTOOL_VERSION
+then
+    echo "$TARANTOOL_VERSION is already built. Rebuild it manually."
+    exit 0
+fi
+
+echo "Will build $TARANTOOL_VERSION from branch: $TARANTOOL_BRANCH"
+
 # TARANTOOL_VERSION: 1.6.9-11-gf4619d0, 1.7.5-0-g24b70de10, 1.8.1-415-ge3d2485c7
 # TARANTOOL_VERSION=1.7.5-0-g24b70de10
-REPOSITORY=progaudi/tarantool
 
 # split by .
 IFS=. read -ra version_slugs <<< "$TARANTOOL_VERSION"
