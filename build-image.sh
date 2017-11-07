@@ -16,7 +16,7 @@ pushd .tarantool
 
 git checkout $TARANTOOL_BRANCH
 git pull
-TARANTOOL_VERSION=$(git describe)
+TARANTOOL_VERSION=$(git describe --long)
 
 popd
 
