@@ -2,6 +2,7 @@ FROM alpine:3.5
 MAINTAINER mail@racktear.com
 
 ARG TARANTOOL_VERSION
+ARG TARANTOOL_BRANCH
 
 RUN addgroup -S tarantool \
     && adduser -S -G tarantool tarantool \
@@ -94,6 +95,7 @@ RUN set -x \
     && : "---------- tarantool ----------" \
     && mkdir -p /usr/src/tarantool \
     && git clone "$TARANTOOL_DOWNLOAD_URL" /usr/src/tarantool \
+    && (cd /usr/src/tarantool; git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}) \
     && echo "----------------------------------------------" \
     && echo "Building tarantool v"${TARANTOOL_VERSION} \
     && echo "----------------------------------------------" \

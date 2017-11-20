@@ -16,6 +16,7 @@ pushd .tarantool
 
 git checkout $TARANTOOL_BRANCH
 git pull
+git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}
 TARANTOOL_VERSION=$(git describe --long)
 
 popd
@@ -55,9 +56,8 @@ for dir in $major* ;
 do
     pushd $dir
 
-
     tail=${dir#$major}
-    docker build -t $REPOSITORY:$major$tail -t $REPOSITORY:$minor$tail -t $REPOSITORY:$TARANTOOL_VERSION$tail --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION .
+    docker build -t $REPOSITORY:$major$tail -t $REPOSITORY:$minor$tail -t $REPOSITORY:$TARANTOOL_VERSION$tail --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH .
     docker push $REPOSITORY:$major$tail
     docker push $REPOSITORY:$minor$tail
     docker push $REPOSITORY:$TARANTOOL_VERSION$tail
