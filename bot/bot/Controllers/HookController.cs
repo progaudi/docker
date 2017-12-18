@@ -44,6 +44,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
             {
                 case "1.6":
                 case "1.7":
+                case "1.7-next":
                 case "1.8":
                     var response = await TriggerBuild(version);
                     statusCode = (int) response.StatusCode;
