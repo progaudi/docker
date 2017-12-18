@@ -56,6 +56,8 @@ minor=$major.${minor_slugs[0]}
 
 docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
 
+set -x
+
 for dir in $major* ;
 do
     pushd $dir
