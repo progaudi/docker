@@ -16,7 +16,11 @@ pushd .tarantool
 
 git checkout $TARANTOOL_BRANCH
 git pull
-git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}
+if [ -z "$TARANTOOL_TAG_PREFIX" ]; then
+    git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}
+else
+    git tag | grep -v $TARANTOOL_BRANCH | grep -v $TARANTOOL_TAG_PREFIX | xargs -I {} git tag -d {}
+fi
 TARANTOOL_VERSION=$(git describe --long)
 
 popd

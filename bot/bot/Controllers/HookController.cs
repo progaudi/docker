@@ -26,7 +26,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
         public IActionResult Get()
         {
             var response = Counters.Aggregate(
-                new StringBuilder(),
+                new StringBuilder("Stats:").AppendLine(),
                 (sb, x) => sb.AppendLine($"progaudi.tarantoo.docker.bot.{x.Key} {x.Value}"),
                 sb => sb.ToString());
             return Content(response, new MediaTypeHeaderValue("text/plain") { Encoding = Encoding.UTF8 });
@@ -46,7 +46,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
                 case "1.7":
                 case "1.7-next":
                 case "1.8":
-                    var response = await TriggerBuild(version);
+                    var response = await TriggerBuild(version, version.Replace("-next", string.Empty));
                     statusCode = (int) response.StatusCode;
                     Counters.AddOrUpdate($"builds{{version=\"{version}\", code={statusCode}}}", 1, (s, i) => i + 1);
                     break;
@@ -58,7 +58,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
             };
         }
 
-        private static async Task<HttpResponseMessage> TriggerBuild(string branch)
+        private static async Task<HttpResponseMessage> TriggerBuild(string branch, string tagPrefix)
         {
             using (var client = new HttpClient())
             {
@@ -67,7 +67,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
                 message.Headers.Add("Travis-API-Version", "3");
                 message.Headers.Authorization = new AuthenticationHeaderValue("token", Startup.TravisToken);
                 message.Content = new StringContent(
-                    "{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\"}}}}",
+                    "{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\", \"TARANTOOL_TAG_PREFIX\": \"" + tagPrefix + "\"}}}}",
                     Encoding.UTF8,
                     "application/json");
 
