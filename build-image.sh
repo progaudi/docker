@@ -18,6 +18,7 @@ git checkout $TARANTOOL_BRANCH
 git pull
 if [ -z "$TARANTOOL_TAG_PREFIX" ]; then
     git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}
+    TARANTOOL_TAG_PREFIX=$TARANTOOL_BRANCH
 else
     git tag | grep -v $TARANTOOL_BRANCH | grep -v $TARANTOOL_TAG_PREFIX | xargs -I {} git tag -d {}
 fi
@@ -63,7 +64,14 @@ do
     pushd $dir
 
     tail=${dir#$major}
-    docker build -t $REPOSITORY:$major$tail -t $REPOSITORY:$minor$tail -t $REPOSITORY:$TARANTOOL_VERSION$tail --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH .
+    docker build \
+        -t $REPOSITORY:$major$tail \
+        -t $REPOSITORY:$minor$tail \
+        -t $REPOSITORY:$TARANTOOL_VERSION$tail \
+        --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION \
+        --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH \
+        --build-arg TARANTOOL_TAG_PREFIX=$TARANTOOL_TAG_PREFIX \
+        .
     docker push $REPOSITORY:$major$tail
     docker push $REPOSITORY:$minor$tail
     docker push $REPOSITORY:$TARANTOOL_VERSION$tail
