@@ -107,6 +107,7 @@ RUN set -x \
     && echo "Building tarantool v"${TARANTOOL_VERSION} \
     && echo "----------------------------------------------" \
     && git -C /usr/src/tarantool checkout "$TARANTOOL_VERSION" \
+    && echo "${TARANTOOL_VERSION}" > /usr/src/tarantool/VERSION \
     && git -C /usr/src/tarantool submodule update --init --recursive \
     && (cd /usr/src/tarantool; \
        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo\

@@ -89,11 +89,12 @@ RUN set -x \
     && : "---------- tarantool ----------" \
     && mkdir -p /usr/src/tarantool \
     && git clone "$TARANTOOL_DOWNLOAD_URL" /usr/src/tarantool \
-    && (cd /usr/src/tarantool; git checkout "$TARANTOOL_VERSION";) \
     && (cd /usr/src/tarantool; git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}) \
     && echo "----------------------------------------------" \
     && echo "Building tarantool v"${TARANTOOL_VERSION} \
     && echo "----------------------------------------------" \
+    && (cd /usr/src/tarantool; git checkout "$TARANTOOL_VERSION";) \
+    && echo "${TARANTOOL_VERSION}" > /usr/src/tarantool/VERSION \
     && (cd /usr/src/tarantool; git submodule update --init --recursive;) \
     && (cd /usr/src/tarantool; \
        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo\
