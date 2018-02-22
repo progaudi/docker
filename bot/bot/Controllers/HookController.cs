@@ -53,7 +53,6 @@ namespace Progaudi.Tarantool.Bot.Controllers
                 switch (version)
                 {
                     case "1.7-next":
-                    case "1.9":
                         return TriggerBuild(version, "1.7");
                     default:
                         return TriggerBuild(version);
