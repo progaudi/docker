@@ -39,7 +39,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
             _logger.LogWarning("Version = {Version}, ref = {Ref}", version, payload.Ref);
             Counters.AddOrUpdate("requests", 1, (s, i) => i + 1);
 
-            var response = await GetResponse();
+            var response = await TriggerBuild(version);
             var statusCode = (int) response.StatusCode;
             Counters.AddOrUpdate($"builds{{version=\"{version}\", code={statusCode}}}", 1, (s, i) => i + 1);
 
@@ -47,17 +47,6 @@ namespace Progaudi.Tarantool.Bot.Controllers
             {
                 StatusCode = statusCode
             };
-
-            Task<HttpResponseMessage> GetResponse()
-            {
-                switch (version)
-                {
-                    case "1.7-next":
-                        return TriggerBuild(version, "1.7");
-                    default:
-                        return TriggerBuild(version);
-                }
-            }
         }
 
         private static async Task<HttpResponseMessage> TriggerBuild(string branch, string tagPrefix = null)
