@@ -1,18 +1,16 @@
-FROM alpine:3.5
+FROM centos:7
 MAINTAINER mail@racktear.com
 
-RUN addgroup -S tarantool \
-    && adduser -S -G tarantool tarantool \
-    && apk add --no-cache 'su-exec>=0.2'
+RUN groupadd tarantool \
+    && adduser -g tarantool tarantool
 
 ENV TARANTOOL_VERSION=1.9.1-0-g06ec3d50d \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
     TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
-    GPERFTOOLS_REPO=https://github.com/gperftools/gperftools.git \
-    GPERFTOOLS_TAG=gperftools-2.5 \
     LUAROCKS_URL=https://github.com/tarantool/luarocks/archive/6e6fe62d9409fe2103c0fd091cccb3da0451faf5.tar.gz \
     LUAROCK_SHARD_REPO=https://github.com/tarantool/shard.git \
     LUAROCK_SHARD_TAG=8f8c5a7 \
+    LUAROCK_CHECKS_VERSION=1.0.0 \
     LUAROCK_AVRO_SCHEMA_VERSION=2.0.1 \
     LUAROCK_EXPERATIOND_VERSION=1.0.1 \
     LUAROCK_QUEUE_VERSION=1.0.2 \
@@ -27,13 +25,15 @@ ENV TARANTOOL_VERSION=1.9.1-0-g06ec3d50d \
     LUAROCK_TARANTOOL_PROMETHEUS_VERSION=1.0.0 \
     LUAROCK_TARANTOOL_GPERFTOOLS_VERSION=1.0.1
 
-COPY gperftools_alpine.diff /
+RUN yum -y install epel-release && \
+    yum -y update && \
+    yum -y clean all
 
 RUN set -x \
-    && apk add --no-cache --virtual .run-deps \
+    && yum -y install \
         libstdc++ \
         readline \
-        libressl \
+        openssl \
         yaml \
         lz4 \
         binutils \
@@ -43,50 +43,40 @@ RUN set -x \
         curl \
         tar \
         zip \
+        unzip \
         libunwind \
         libcurl \
-        icu \
-    && apk add --no-cache --virtual .build-deps \
+        libicu \
+    && yum -y install \
         perl \
-        gcc \
-        g++ \
+        gcc-c++ \
         cmake \
-        readline-dev \
-        libressl-dev \
-        yaml-dev \
-        lz4-dev \
-        binutils-dev \
-        ncurses-dev \
-        lua-dev \
-        musl-dev \
+        readline-devel \
+        openssl-devel \
+        libyaml-devel \
+        lz4-devel \
+        binutils-devel \
+        ncurses-devel \
+        lua-devel \
         make \
         git \
-        libunwind-dev \
+        libunwind-devel \
         autoconf \
         automake \
         libtool \
-        linux-headers \
         go \
-        curl-dev \
-        icu-dev \
+        wget \
+        curl-devel \
+        libicu-devel \
     && : "---------- gperftools ----------" \
-    && mkdir -p /usr/src/gperftools \
-    && git clone "$GPERFTOOLS_REPO" /usr/src/gperftools \
-    && git -C /usr/src/gperftools checkout "$GPERFTOOLS_TAG" \
-    && (cd /usr/src/gperftools; \
-        patch -p1 < /gperftools_alpine.diff; \
-        rm /gperftools_alpine.diff; \
-        ./autogen.sh; \
-        ./configure; \
-        make; \
-        cp .libs/libprofiler.so* /usr/local/lib;) \
+    && yum install -y gperftools-libs \
     && (GOPATH=/usr/src/go go get github.com/google/pprof; \
         cp /usr/src/go/bin/pprof /usr/local/bin) \
     && : "---------- tarantool ----------" \
     && mkdir -p /usr/src/tarantool \
     && git clone "$TARANTOOL_DOWNLOAD_URL" /usr/src/tarantool \
-    && git -C /usr/src/tarantool checkout "$TARANTOOL_VERSION" \
-    && git -C /usr/src/tarantool submodule update --init --recursive \
+    && (cd /usr/src/tarantool; git checkout "$TARANTOOL_VERSION";) \
+    && (cd /usr/src/tarantool; git submodule update --init --recursive;) \
     && (cd /usr/src/tarantool; \
        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo\
              -DENABLE_BUNDLED_LIBYAML:BOOL=OFF\
@@ -124,58 +114,72 @@ RUN set -x \
         make install) \
     && rm -r /usr/src/luarocks \
     && rm -rf /usr/src/tarantool \
-    && rm -rf /usr/src/gperftools \
     && rm -rf /usr/src/go \
     && : "---------- remove build deps ----------" \
-    && apk del .build-deps
+    && yum -y remove \
+        perl \
+        gcc-c++ \
+        cmake \
+        readline-devel \
+        openssl-devel \
+        libyaml-devel \
+        lz4-devel \
+        binutils-devel \
+        ncurses-devel \
+        lua-devel \
+        make \
+        git \
+        libunwind-devel \
+        autoconf \
+        automake \
+        libtool \
+        go \
+        wget \
+        perl \
+        kernel-headers \
+        golang-src \
+        curl-devel \
+        libicu-devel \
+    && rpm -qa | grep devel | xargs yum -y remove \
+    && rm -rf /var/cache/yum
+
 
 COPY luarocks-config.lua /usr/local/etc/luarocks/config-5.1.lua
+COPY mosquitto.repo /etc/yum.repos.d/
 
 RUN set -x \
-    && apk add --no-cache --virtual .run-deps \
-        mariadb-client-libs \
-        libpq \
+    && yum -y install https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-redhat96-9.6-3.noarch.rpm \
+    && yum -y install \
+        mariadb-libs \
+        postgresql96-libs \
         cyrus-sasl \
-        mosquitto-libs \
+        libcurl \
+        libmosquitto1 \
         libev \
-    && apk add --no-cache --virtual .build-deps \
+        proj \
+        geos \
+        unzip \
+    && yum -y install \
         git \
         cmake \
         make \
-        coreutils \
-        gcc \
-        g++ \
-        postgresql-dev \
-        lua-dev \
-        musl-dev \
-        cyrus-sasl-dev \
-        curl-dev \
-        mosquitto-dev \
-        libev-dev \
+        gcc-c++ \
+        postgresql96-devel \
+        lua-devel \
+        cyrus-sasl-devel \
+        curl-devel \
+        libmosquitto-devel \
+        libev-devel \
+        wget \
+        proj-devel \
+        geos-devel \
+        openssl-devel \
     && mkdir -p /rocks \
-    && : "---------- proj (for gis module) ----------" \
-    && wget -O proj.tar.gz http://download.osgeo.org/proj/proj-4.9.3.tar.gz \
-    && mkdir -p /usr/src/proj \
-    && tar -xzf proj.tar.gz -C /usr/src/proj --strip-components=1 \
-    && (cd /usr/src/proj; \
-        ./configure; \
-        make; \
-        make install) \
-    && rm -r /usr/src/proj \
-    && rm -rf /usr/src/proj \
-    && : "---------- geos (for gis module) ----------" \
-    && wget -O geos.tar.bz2 http://download.osgeo.org/geos/geos-3.6.0.tar.bz2 \
-    && mkdir -p /usr/src/geos \
-    && tar -xjf geos.tar.bz2 -C /usr/src/geos --strip-components=1 \
-    && (cd /usr/src/geos; \
-        ./configure; \
-        make; \
-        make install) \
-    && rm -r /usr/src/geos \
-    && rm -rf /usr/src/geos \
     && : "---------- luarocks ----------" \
     && luarocks install lua-term \
     && luarocks install ldoc \
+    && : "checks" \
+    && luarocks install checks $LUAROCK_CHECKS_VERSION \
     && : "avro" \
     && luarocks install avro-schema $LUAROCK_AVRO_SCHEMA_VERSION \
     && : "expirationd" \
@@ -186,7 +190,7 @@ RUN set -x \
     && luarocks install connpool $LUAROCK_CONNPOOL_VERSION \
     && : "shard" \
     && git clone $LUAROCK_SHARD_REPO /rocks/shard \
-    && git -C /rocks/shard checkout $LUAROCK_SHARD_TAG \
+    && (cd /rocks/shard; git checkout $LUAROCK_SHARD_TAG) \
     && (cd /rocks/shard && luarocks make *rockspec) \
     && : "http" \
     && luarocks install http $LUAROCK_HTTP_VERSION \
@@ -207,8 +211,42 @@ RUN set -x \
     && : "gperftools" \
     && luarocks install gperftools $LUAROCK_TARANTOOL_GPERFTOOLS_VERSION \
     && : "---------- remove build deps ----------" \
-    && apk del .build-deps \
-    && rm -rf /rocks
+    && rm -rf /rocks \
+    && yum -y remove \
+        git \
+        cmake \
+        make \
+        gcc-c++ \
+        postgresql96-devel \
+        lua-devel \
+        cyrus-sasl-devel \
+        curl-devel \
+        libmosquitto-devel \
+        libev-devel \
+        wget \
+        proj-devel \
+        geos-devel \
+        openssl-devel \
+        perl \
+        kernel-headers \
+        golang-src \
+    && rpm -qa | grep devel | xargs yum -y remove \
+    && rm -rf /var/cache/yum
+
+
+RUN set -x \
+    && : "---------- gosu ----------" \
+    && gpg --keyserver pool.sks-keyservers.net --recv-keys \
+       B42F6819007F00F88E364FD4036A9C25BF357DD4 \
+    && curl -o /usr/local/bin/gosu -SL \
+       "https://github.com/tianon/gosu/releases/download/1.2/gosu-amd64" \
+    && curl -o /usr/local/bin/gosu.asc -SL \
+       "https://github.com/tianon/gosu/releases/download/1.2/gosu-amd64.asc" \
+    && gpg --verify /usr/local/bin/gosu.asc \
+    && rm /usr/local/bin/gosu.asc \
+    && rm -r /root/.gnupg/ \
+    && chmod +x /usr/local/bin/gosu
+
 
 RUN mkdir -p /var/lib/tarantool \
     && chown tarantool:tarantool /var/lib/tarantool \
