@@ -16,15 +16,16 @@ pushd .tarantool
 
 git checkout $TARANTOOL_BRANCH
 git pull
-if [ -z "$TARANTOOL_TAG_PREFIX" ]; then
-    git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}
-    TARANTOOL_TAG_PREFIX=$TARANTOOL_BRANCH
-else
-    git tag | grep -v $TARANTOOL_BRANCH | grep -v $TARANTOOL_TAG_PREFIX | xargs -I {} git tag -d {}
-fi
-TARANTOOL_VERSION=$(git describe --long)
+git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}
+TARANTOOL_VERSION=$(git describe --long || echo "no version")
 
 popd
+
+if [ $TARANTOOL_VERSION == "no version" ]
+then
+    echo "No version to build, possible a feature branch. Skipping it."
+    exit 0
+fi
 
 if docker pull $REPOSITORY:$TARANTOOL_VERSION
 then
@@ -59,18 +60,17 @@ docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
 
 set -x
 
-for dir in $major* ;
+for dir in $TARANTOOL_DIRECTORY* ;
 do
     pushd $dir
 
-    tail=${dir#$major}
+    tail=${dir#$TARANTOOL_DIRECTORY}
     docker build \
         -t $REPOSITORY:$major$tail \
         -t $REPOSITORY:$minor$tail \
         -t $REPOSITORY:$TARANTOOL_VERSION$tail \
         --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION \
         --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH \
-        --build-arg TARANTOOL_TAG_PREFIX=$TARANTOOL_TAG_PREFIX \
         .
     docker push $REPOSITORY:$major$tail
     docker push $REPOSITORY:$minor$tail

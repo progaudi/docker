@@ -90,7 +90,7 @@ RUN set -x \
     && : "---------- tarantool ----------" \
     && mkdir -p /usr/src/tarantool \
     && git clone "$TARANTOOL_DOWNLOAD_URL" /usr/src/tarantool \
-    && (cd /usr/src/tarantool; git tag | grep -v $TARANTOOL_BRANCH | grep -v $TARANTOOL_TAG_PREFIX | xargs -I {} git tag -d {}) \
+    && (cd /usr/src/tarantool; git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}) \
     && echo "----------------------------------------------" \
     && echo "Building tarantool v"${TARANTOOL_VERSION} \
     && echo "----------------------------------------------" \

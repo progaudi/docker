@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -14,6 +15,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
     [Route("hook")]
     public class HookController : Controller
     {
+        private static readonly Regex ValidVersion = new Regex("^((?<version>)\\d)\\..*", RegexOptions.Compiled);
         private static readonly ConcurrentDictionary<string, int> Counters = new ConcurrentDictionary<string, int>();
         private readonly ILogger<HookController> _logger;
 
@@ -39,7 +41,15 @@ namespace Progaudi.Tarantool.Bot.Controllers
             _logger.LogWarning("Version = {Version}, ref = {Ref}", version, payload.Ref);
             Counters.AddOrUpdate("requests", 1, (s, i) => i + 1);
 
-            var response = await TriggerBuild(version);
+            var match = ValidVersion.Match(version);
+
+            if (!match.Success)
+            {
+                Counters.AddOrUpdate($"skip{{version=\"{version}\"}}", 1, (s, i) => i + 1);
+                return Ok("Skipped");
+            }
+
+            var response = await TriggerBuild(version, $"{match.Groups["version"]}.x");
             var statusCode = (int) response.StatusCode;
             Counters.AddOrUpdate($"builds{{version=\"{version}\", code={statusCode}}}", 1, (s, i) => i + 1);
 
@@ -49,7 +59,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
             };
         }
 
-        private static async Task<HttpResponseMessage> TriggerBuild(string branch, string tagPrefix = null)
+        private static async Task<HttpResponseMessage> TriggerBuild(string branch, string directory)
         {
             using (var client = new HttpClient())
             {
@@ -57,9 +67,9 @@ namespace Progaudi.Tarantool.Bot.Controllers
                 message.Headers.Accept.ParseAdd("application/json");
                 message.Headers.Add("Travis-API-Version", "3");
                 message.Headers.Authorization = new AuthenticationHeaderValue("token", Startup.TravisToken);
-                var config = string.IsNullOrEmpty(tagPrefix)
+                var config = string.IsNullOrEmpty(directory)
                     ? "{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\"}}}}"
-                    : "{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\", \"TARANTOOL_TAG_PREFIX\": \"" + tagPrefix + "\"}}}}";
+                    : "{\"request\": {\"branch\":\"develop\",\"config\": {\"env\": {\"TARANTOOL_BRANCH\": \"" + branch + "\", \"TARANTOOL_DIRECTORY\": \"" + directory + "\"}}}}";
                 message.Content = new StringContent(
                     config,
                     Encoding.UTF8,
