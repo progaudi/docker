@@ -27,14 +27,6 @@ then
     exit 0
 fi
 
-if docker pull $REPOSITORY:$TARANTOOL_VERSION
-then
-    echo "$TARANTOOL_VERSION is already built. Rebuild it manually."
-    exit 0
-fi
-
-echo "Will build $TARANTOOL_VERSION from branch: $TARANTOOL_BRANCH"
-
 # TARANTOOL_VERSION: 1.6.9-11-gf4619d0, 1.7.5-0-g24b70de10, 1.8.1-415-ge3d2485c7
 # TARANTOOL_VERSION=1.7.5-0-g24b70de10
 
@@ -63,18 +55,29 @@ set -x
 for dir in $TARANTOOL_DIRECTORY* ;
 do
     pushd $dir
-
     tail=${dir#$TARANTOOL_DIRECTORY}
-    docker build \
-        -t $REPOSITORY:$major$tail \
-        -t $REPOSITORY:$minor$tail \
-        -t $REPOSITORY:$TARANTOOL_VERSION$tail \
-        --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION \
-        --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH \
-        .
-    docker push $REPOSITORY:$major$tail
-    docker push $REPOSITORY:$minor$tail
-    docker push $REPOSITORY:$TARANTOOL_VERSION$tail
+
+    if docker pull $REPOSITORY:$TARANTOOL_VERSION$tail
+    then
+        echo "$TARANTOOL_VERSION$tail is already built. Rebuild it manually."
+    else
+        echo "Will build $TARANTOOL_VERSION$tail from branch: $TARANTOOL_BRANCH"
+
+        docker build \
+            -t $REPOSITORY:$major$tail \
+            -t $REPOSITORY:$minor$tail \
+            -t $REPOSITORY:$TARANTOOL_VERSION$tail \
+            --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION \
+            --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH \
+            .
+
+        docker run --rm -ti --entrypoint=/usr/local/bin/tarantool $REPOSITORY:$TARANTOOL_VERSION$tail \
+            | grep "Tarantool $TARANTOOL_VERSION"
+
+        docker push $REPOSITORY:$major$tail
+        docker push $REPOSITORY:$minor$tail
+        docker push $REPOSITORY:$TARANTOOL_VERSION$tail
+    fi    
 
     popd
 done
