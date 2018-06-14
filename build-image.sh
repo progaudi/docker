@@ -48,7 +48,7 @@ fi
 
 minor=$major.${minor_slugs[0]}
 
-docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
 set -x
 
@@ -71,8 +71,8 @@ do
             --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH \
             .
 
-        docker run --rm -ti --entrypoint=/usr/local/bin/tarantool $REPOSITORY:$TARANTOOL_VERSION$tail \
-            | grep "Tarantool $TARANTOOL_VERSION"
+        # docker run --rm --entrypoint=/usr/local/bin/tarantool $REPOSITORY:$TARANTOOL_VERSION$tail \
+        #     | grep "Tarantool $TARANTOOL_VERSION"
 
         docker push $REPOSITORY:$major$tail
         docker push $REPOSITORY:$minor$tail
