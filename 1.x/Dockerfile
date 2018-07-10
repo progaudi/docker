@@ -6,7 +6,9 @@ ARG TARANTOOL_BRANCH
 
 RUN addgroup -S tarantool \
     && adduser -S -G tarantool tarantool \
-    && apk add --no-cache 'su-exec>=0.2'
+    && apk add --no-cache \
+        'su-exec>=0.2' \
+        ca-certificates
 
 ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
@@ -50,7 +52,6 @@ RUN set -x \
         libunwind \
         libcurl \
         icu \
-        ca-certificates \
     && apk add --no-cache --virtual .build-deps \
         perl \
         gcc \
