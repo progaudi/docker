@@ -50,6 +50,7 @@ RUN set -x \
         libunwind \
         libcurl \
         icu \
+        ca-certificates \
     && apk add --no-cache --virtual .build-deps \
         perl \
         gcc \
