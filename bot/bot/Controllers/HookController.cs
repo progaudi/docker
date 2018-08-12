@@ -15,7 +15,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
     [Route("hook")]
     public class HookController : Controller
     {
-        private static readonly Regex ValidVersion = new Regex("^(?<version>\\d)\\..*", RegexOptions.Compiled);
+        private static readonly Regex ValidVersion = new Regex("^(?<version>\\d)\\.\\d*", RegexOptions.Compiled);
         private static readonly ConcurrentDictionary<string, int> Counters = new ConcurrentDictionary<string, int>();
         private readonly ILogger<HookController> _logger;
 
