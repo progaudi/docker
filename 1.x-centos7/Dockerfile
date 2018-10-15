@@ -49,7 +49,6 @@ RUN set -x \
         unzip \
         libunwind \
         libcurl \
-        libicu \
     && yum -y install \
         perl \
         gcc-c++ \
@@ -70,7 +69,19 @@ RUN set -x \
         go \
         wget \
         curl-devel \
-        libicu-devel \
+    && : "---------- libicu ----------" \
+    && wget http://download.icu-project.org/files/icu4c/62.1/icu4c-62_1-src.tgz \
+    && mkdir -p /usr/src/icu \
+        && tar -xzf icu4c-62_1-src.tgz -C /usr/src/icu --strip-components=1 \
+        && rm icu4c-62_1-src.tgz \
+    && (cd /usr/src/icu/source; \
+        chmod +x runConfigureICU configure install-sh; \
+        ./runConfigureICU Linux/gcc; \
+        make; \
+        make install; \
+        echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf; \
+        cat /etc/ld.so.conf.d/local.conf; \
+        ldconfig )\
     && : "---------- gperftools ----------" \
     && yum install -y gperftools-libs \
     && (GOPATH=/usr/src/go go get github.com/google/pprof; \
@@ -122,6 +133,7 @@ RUN set -x \
     && rm -r /usr/src/luarocks \
     && rm -rf /usr/src/tarantool \
     && rm -rf /usr/src/go \
+    && rm -rf /usr/src/icu \
     && : "---------- remove build deps ----------" \
     && yum -y remove \
         perl \
@@ -146,7 +158,6 @@ RUN set -x \
         kernel-headers \
         golang-src \
         curl-devel \
-        libicu-devel \
     && rpm -qa | grep devel | xargs yum -y remove \
     && rm -rf /var/cache/yum
 

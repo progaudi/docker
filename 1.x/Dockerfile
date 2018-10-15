@@ -6,7 +6,7 @@ ARG TARANTOOL_BRANCH
 
 RUN addgroup -S tarantool \
     && adduser -S -G tarantool tarantool \
-    && apk add --no-cache 'su-exec>=0.2'       
+    && apk add --no-cache 'su-exec>=0.2'
 
 ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
@@ -75,6 +75,7 @@ RUN set -x \
         go \
         curl-dev \
         icu-dev \
+        wget \
     && : "---------- gperftools ----------" \
     && mkdir -p /usr/src/gperftools \
     && git clone "$GPERFTOOLS_REPO" /usr/src/gperftools \
