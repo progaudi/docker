@@ -1,10 +1,36 @@
 #!/usr/bin/env bash
 
+function build_and_push()
+{
+    local repo=$1
+    local branch=$2
+    local version=$3
+    local major=$4
+    local minor=$5
+    local tail=$6
+    echo "Will build $version$tail from branch: $branch"
+
+    docker build \
+        -t "$repo":"$major""$tail" \
+        -t "$repo":"$minor""$tail" \
+        -t "$repo":"$version""$tail" \
+        --build-arg TARANTOOL_VERSION="$version" \
+        --build-arg TARANTOOL_BRANCH="$branch" \
+        .
+
+    # docker run --rm --entrypoint=/usr/local/bin/tarantool $repo:$version$tail \
+    #     | grep "Tarantool $version"
+
+    docker push "$repo":"$major""$tail"
+    docker push "$repo":"$minor""$tail"
+    docker push "$repo":"$version""$tail"
+}
+
 REPOSITORY=progaudi/tarantool
 
 set -e
 
-pushd ${BASH_SOURCE%/*}/
+pushd "${BASH_SOURCE%/*}/"
 
 if [ ! -d .tarantool/.git ]
 then
@@ -14,14 +40,14 @@ fi
 
 pushd .tarantool
 
-git checkout $TARANTOOL_BRANCH
+git checkout "$TARANTOOL_BRANCH"
 git pull
-git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}
+git tag | grep -v "$TARANTOOL_BRANCH" | xargs -I {} git tag -d {}
 TARANTOOL_VERSION=$(git describe --long || echo "no version")
 
 popd
 
-if [ $TARANTOOL_VERSION == "no version" ]
+if [ "$TARANTOOL_VERSION" == "no version" ]
 then
     echo "No version to build, possible a feature branch. Skipping it."
     exit 0
@@ -52,32 +78,20 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
 set -x
 
-for dir in $TARANTOOL_DIRECTORY* ;
+for dir in "$TARANTOOL_DIRECTORY"* ;
 do
-    pushd $dir
+    pushd "$dir"
     tail=${dir#$TARANTOOL_DIRECTORY}
 
-    if docker pull $REPOSITORY:$TARANTOOL_VERSION$tail
+    if [ ! -z "$FORCE_BUILD" ]
+    then
+        build_and_push $REPOSITORY "$TARANTOOL_BRANCH" "$TARANTOOL_VERSION" "$major" "$minor" "$tail"
+    elif docker pull $REPOSITORY:"$TARANTOOL_VERSION""$tail"
     then
         echo "$TARANTOOL_VERSION$tail is already built. Rebuild it manually."
     else
-        echo "Will build $TARANTOOL_VERSION$tail from branch: $TARANTOOL_BRANCH"
-
-        docker build \
-            -t $REPOSITORY:$major$tail \
-            -t $REPOSITORY:$minor$tail \
-            -t $REPOSITORY:$TARANTOOL_VERSION$tail \
-            --build-arg TARANTOOL_VERSION=$TARANTOOL_VERSION \
-            --build-arg TARANTOOL_BRANCH=$TARANTOOL_BRANCH \
-            .
-
-        # docker run --rm --entrypoint=/usr/local/bin/tarantool $REPOSITORY:$TARANTOOL_VERSION$tail \
-        #     | grep "Tarantool $TARANTOOL_VERSION"
-
-        docker push $REPOSITORY:$major$tail
-        docker push $REPOSITORY:$minor$tail
-        docker push $REPOSITORY:$TARANTOOL_VERSION$tail
-    fi    
+        build_and_push $REPOSITORY "$TARANTOOL_BRANCH" "$TARANTOOL_VERSION" "$major" "$minor" "$tail"
+    fi
 
     popd
 done
