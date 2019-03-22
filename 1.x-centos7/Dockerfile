@@ -10,6 +10,8 @@ RUN groupadd tarantool \
 ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
     TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
+    CURL_REPO=https://github.com/curl/curl.git \
+    CURL_TAG=curl-7_64_0 \
     LUAROCKS_URL=https://github.com/tarantool/luarocks/archive/6e6fe62d9409fe2103c0fd091cccb3da0451faf5.tar.gz \
     LUAROCK_SHARD_REPO=https://github.com/tarantool/shard.git \
     LUAROCK_SHARD_TAG=8f8c5a7 \
@@ -43,12 +45,11 @@ RUN set -x \
         ncurses \
         libgomp \
         lua \
-        curl \
         tar \
         zip \
         unzip \
         libunwind \
-        libcurl \
+        ca-certificates \
     && yum -y install \
         perl \
         gcc-c++ \
@@ -68,19 +69,27 @@ RUN set -x \
         libtool \
         go \
         wget \
-        curl-devel \
     && : "---------- libicu ----------" \
-    && wget http://download.icu-project.org/files/icu4c/62.1/icu4c-62_1-src.tgz \
+    && wget http://download.icu-project.org/files/icu4c/63.1/icu4c-63_1-src.tgz \
     && mkdir -p /usr/src/icu \
-        && tar -xzf icu4c-62_1-src.tgz -C /usr/src/icu --strip-components=1 \
-        && rm icu4c-62_1-src.tgz \
+        && tar -xzf icu4c-63_1-src.tgz -C /usr/src/icu --strip-components=1 \
+        && rm icu4c-63_1-src.tgz \
     && (cd /usr/src/icu/source; \
         chmod +x runConfigureICU configure install-sh; \
         ./runConfigureICU Linux/gcc; \
         make; \
         make install; \
         echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf; \
-        cat /etc/ld.so.conf.d/local.conf; \
+        ldconfig ) \
+    && : "---------- curl ----------" \
+    && mkdir -p /usr/src/curl \
+    && git clone "$CURL_REPO" /usr/src/curl \
+    && (cd /usr/src/curl; \
+        git checkout "$CURL_TAG"; \
+        ./buildconf; \
+        ./configure --with-ssl --prefix "/usr/local"; \
+        make -j; \
+        make install; \
         ldconfig )\
     && : "---------- gperftools ----------" \
     && yum install -y gperftools-libs \
@@ -134,6 +143,7 @@ RUN set -x \
     && rm -rf /usr/src/tarantool \
     && rm -rf /usr/src/go \
     && rm -rf /usr/src/icu \
+    && rm -rf /usr/src/curl \
     && : "---------- remove build deps ----------" \
     && yum -y remove \
         perl \
@@ -157,7 +167,6 @@ RUN set -x \
         perl \
         kernel-headers \
         golang-src \
-        curl-devel \
     && rpm -qa | grep devel | xargs yum -y remove \
     && rm -rf /var/cache/yum
 
@@ -170,11 +179,11 @@ RUN set -x \
         mariadb-libs \
         postgresql96-libs \
         cyrus-sasl \
-        libcurl \
         libev \
         proj \
         geos \
         unzip \
+        openssl-libs \
     && yum -y install \
         git \
         cmake \
@@ -183,7 +192,6 @@ RUN set -x \
         postgresql96-devel \
         lua-devel \
         cyrus-sasl-devel \
-        curl-devel \
         libev-devel \
         wget \
         proj-devel \
@@ -235,7 +243,6 @@ RUN set -x \
         postgresql96-devel \
         lua-devel \
         cyrus-sasl-devel \
-        curl-devel \
         libev-devel \
         wget \
         proj-devel \
