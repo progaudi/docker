@@ -1,33 +1,27 @@
 FROM centos:7
 MAINTAINER mail@racktear.com
 
-ARG TARANTOOL_VERSION
-ARG TARANTOOL_BRANCH
-
 RUN groupadd tarantool \
     && adduser -g tarantool tarantool
 
-ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
+ENV TARANTOOL_VERSION=2.1.2-52-g154345fc5 \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
     TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
     CURL_REPO=https://github.com/curl/curl.git \
     CURL_TAG=curl-7_64_0 \
     LUAROCKS_URL=https://github.com/tarantool/luarocks/archive/6e6fe62d9409fe2103c0fd091cccb3da0451faf5.tar.gz \
-    LUAROCK_SHARD_REPO=https://github.com/tarantool/shard.git \
-    LUAROCK_SHARD_TAG=8f8c5a7 \
-    LUAROCK_SPACER_ROCKSPEC=https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-2.0.1-1.rockspec \
-    LUAROCK_CHECKS_VERSION=1.0.0 \
-    LUAROCK_AVRO_SCHEMA_VERSION=2.0.1 \
+    LUAROCK_VSHARD_VERSION=0.1.8 \
+    LUAROCK_CHECKS_VERSION=3.0.0 \
+    LUAROCK_AVRO_SCHEMA_VERSION=3.0.3 \
     LUAROCK_EXPERATIOND_VERSION=1.0.1 \
-    LUAROCK_QUEUE_VERSION=1.0.2 \
+    LUAROCK_QUEUE_VERSION=1.0.3 \
     LUAROCK_CONNPOOL_VERSION=1.1.1 \
-    LUAROCK_HTTP_VERSION=1.0.1 \
+    LUAROCK_HTTP_VERSION=1.0.5 \
     LUAROCK_MEMCACHED_VERSION=1.0.0 \
-    LUAROCK_TARANTOOL_PG_VERSION=2.0.1 \
+    LUAROCK_TARANTOOL_PG_VERSION=2.0.2 \
     LUAROCK_TARANTOOL_MYSQL_VERSION=2.0.1 \
-    LUAROCK_TARANTOOL_CURL_VERSION=2.3.1 \
     LUAROCK_TARANTOOL_GIS_VERSION=1.0.0 \
-    LUAROCK_TARANTOOL_PROMETHEUS_VERSION=1.0.0 \
+    LUAROCK_TARANTOOL_PROMETHEUS_VERSION=1.0.4 \
     LUAROCK_TARANTOOL_GPERFTOOLS_VERSION=1.0.1
 
 RUN yum -y install epel-release && \
@@ -98,11 +92,7 @@ RUN set -x \
     && : "---------- tarantool ----------" \
     && mkdir -p /usr/src/tarantool \
     && git clone "$TARANTOOL_DOWNLOAD_URL" /usr/src/tarantool \
-    && (cd /usr/src/tarantool; git tag | grep -v $TARANTOOL_BRANCH | xargs -I {} git tag -d {}) \
-    && echo "----------------------------------------------" \
-    && echo "Building tarantool v"${TARANTOOL_VERSION} \
-    && echo "----------------------------------------------" \
-    && (cd /usr/src/tarantool; git checkout "$TARANTOOL_VERSION") \
+    && (cd /usr/src/tarantool; git checkout "$TARANTOOL_VERSION";) \
     && (cd /usr/src/tarantool; git submodule update --init --recursive;) \
     && (cd /usr/src/tarantool; \
        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo\
@@ -201,8 +191,8 @@ RUN set -x \
     && : "---------- luarocks ----------" \
     && luarocks install lua-term \
     && luarocks install ldoc \
-    && luarocks install luautf8 \
-    && luarocks install $LUAROCK_SPACER_ROCKSPEC \
+    && : "vshard" \
+    && luarocks install vshard $LUAROCK_VSHARD_VERSION \
     && : "checks" \
     && luarocks install checks $LUAROCK_CHECKS_VERSION \
     && : "avro" \
@@ -213,10 +203,6 @@ RUN set -x \
     && luarocks install queue $LUAROCK_QUEUE_VERSION \
     && : "connpool" \
     && luarocks install connpool $LUAROCK_CONNPOOL_VERSION \
-    && : "shard" \
-    && git clone $LUAROCK_SHARD_REPO /rocks/shard \
-    && (cd /rocks/shard; git checkout $LUAROCK_SHARD_TAG) \
-    && (cd /rocks/shard && luarocks make *rockspec) \
     && : "http" \
     && luarocks install http $LUAROCK_HTTP_VERSION \
     && : "pg" \
@@ -227,8 +213,6 @@ RUN set -x \
     && luarocks install memcached $LUAROCK_MEMCACHED_VERSION \
     && : "prometheus" \
     && luarocks install prometheus $LUAROCK_TARANTOOL_PROMETHEUS_VERSION \
-    && : "curl" \
-    && luarocks install tarantool-curl $LUAROCK_TARANTOOL_CURL_VERSION \
     && : "gis" \
     && luarocks install gis $LUAROCK_TARANTOOL_GIS_VERSION \
     && : "gperftools" \
