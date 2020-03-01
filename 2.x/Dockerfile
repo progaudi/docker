@@ -13,7 +13,7 @@ ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     GPERFTOOLS_REPO=https://github.com/gperftools/gperftools.git \
     GPERFTOOLS_TAG=gperftools-2.5 \
     LUAROCK_VSHARD_VERSION=0.1.14 \
-    LUAROCK_SPACER_ROCKSPEC=https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-3.0.1-1.rockspec \
+    LUAROCK_SPACER_ROCKSPEC="https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-3.0.1-1.rockspec  --server=http://rocks.moonscript.org" \
     LUAROCK_AVRO_SCHEMA_VERSION=2.0.1 \
     LUAROCK_EXPERATIOND_VERSION=1.0.1 \
     LUAROCK_QUEUE_VERSION=1.0.2 \

@@ -13,7 +13,7 @@ ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     LUAROCKS_URL=https://github.com/tarantool/luarocks/archive/6e6fe62d9409fe2103c0fd091cccb3da0451faf5.tar.gz \
     LUAROCK_SHARD_REPO=https://github.com/tarantool/shard.git \
     LUAROCK_SHARD_TAG=8f8c5a7 \
-    LUAROCK_SPACER_ROCKSPEC=https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-3.0.1-1.rockspec \
+    LUAROCK_SPACER_ROCKSPEC="https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-3.0.1-1.rockspec  --server=http://rocks.moonscript.org" \
     LUAROCK_CHECKS_VERSION=1.0.0 \
     LUAROCK_AVRO_SCHEMA_VERSION=2.0.1 \
     LUAROCK_EXPERATIOND_VERSION=1.0.1 \
