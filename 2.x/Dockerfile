@@ -10,15 +10,10 @@ RUN addgroup -S tarantool \
 
 ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
-    TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
-    CURL_REPO=https://github.com/curl/curl.git \
-    CURL_TAG=curl-7_59_0 \
     GPERFTOOLS_REPO=https://github.com/gperftools/gperftools.git \
     GPERFTOOLS_TAG=gperftools-2.5 \
-    LUAROCKS_URL=https://github.com/tarantool/luarocks/archive/6e6fe62d9409fe2103c0fd091cccb3da0451faf5.tar.gz \
-    LUAROCK_SHARD_REPO=https://github.com/tarantool/shard.git \
-    LUAROCK_SHARD_TAG=e75d2c7 \
-    LUAROCK_SPACER_ROCKSPEC=https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-2.0.1-1.rockspec \
+    LUAROCK_VSHARD_VERSION=0.1.14 \
+    LUAROCK_SPACER_ROCKSPEC=https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-3.0.1-1.rockspec \
     LUAROCK_AVRO_SCHEMA_VERSION=2.0.1 \
     LUAROCK_EXPERATIOND_VERSION=1.0.1 \
     LUAROCK_QUEUE_VERSION=1.0.2 \
@@ -27,7 +22,6 @@ ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     LUAROCK_MEMCACHED_VERSION=1.0.0 \
     LUAROCK_TARANTOOL_PG_VERSION=2.0.1 \
     LUAROCK_TARANTOOL_MYSQL_VERSION=2.0.1 \
-    LUAROCK_TARANTOOL_CURL_VERSION=2.3.1 \
     LUAROCK_TARANTOOL_MQTT_VERSION=1.2.1 \
     LUAROCK_TARANTOOL_GIS_VERSION=1.0.0 \
     LUAROCK_TARANTOOL_PROMETHEUS_VERSION=1.0.0 \
@@ -39,7 +33,7 @@ RUN set -x \
     && apk add --no-cache --virtual .run-deps \
         libstdc++ \
         readline \
-        libressl \
+        openssl \
         yaml \
         lz4 \
         binutils \
@@ -48,22 +42,23 @@ RUN set -x \
         lua \
         tar \
         zip \
+        zlib \
         libunwind \
         icu \
         ca-certificates \
         wget \
     && apk add --no-cache --virtual .build-deps \
-        perl \
         gcc \
         g++ \
         cmake \
+        file \
         readline-dev \
-        libressl-dev \
+        openssl-dev \
         yaml-dev \
         lz4-dev \
+        zlib-dev \
         binutils-dev \
         ncurses-dev \
-        lua-dev \
         musl-dev \
         make \
         git \
@@ -73,18 +68,8 @@ RUN set -x \
         libtool \
         linux-headers \
         go \
-        tcl \
         icu-dev \
         wget \
-    && : "---------- curl ----------" \
-    && mkdir -p /usr/src/curl \
-    && git clone "$CURL_REPO" /usr/src/curl \
-    && git -C /usr/src/curl checkout "$CURL_TAG" \
-    && (cd /usr/src/curl \
-        && ./buildconf \
-        && ./configure --prefix "/usr/local" \
-        && make -j \
-        && make install) \
     && : "---------- gperftools ----------" \
     && mkdir -p /usr/src/gperftools \
     && git clone "$GPERFTOOLS_REPO" /usr/src/gperftools \
@@ -109,47 +94,18 @@ RUN set -x \
     && git -C /usr/src/tarantool submodule update --init --recursive \
     && (cd /usr/src/tarantool; \
        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo\
-             -DENABLE_BUNDLED_LIBYAML:BOOL=OFF\
+             -DENABLE_BUNDLED_LIBYAML:BOOL=ON\
              -DENABLE_BACKTRACE:BOOL=ON\
              -DENABLE_DIST:BOOL=ON\
              .) \
     && make -C /usr/src/tarantool -j\
     && make -C /usr/src/tarantool install \
     && make -C /usr/src/tarantool clean \
-    && : "---------- small ----------" \
-    && (cd /usr/src/tarantool/src/lib/small; \
-        cmake -DCMAKE_INSTALL_PREFIX=/usr \
-              -DCMAKE_INSTALL_LIBDIR=lib \
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-              .) \
-    && make -C /usr/src/tarantool/src/lib/small \
-    && make -C /usr/src/tarantool/src/lib/small install \
-    && make -C /usr/src/tarantool/src/lib/small clean \
-    && : "---------- msgpuck ----------" \
-    && (cd /usr/src/tarantool/src/lib/msgpuck; \
-        cmake -DCMAKE_INSTALL_PREFIX=/usr \
-              -DCMAKE_INSTALL_LIBDIR=lib \
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-              .) \
-    && make -C /usr/src/tarantool/src/lib/msgpuck \
-    && make -C /usr/src/tarantool/src/lib/msgpuck install \
-    && make -C /usr/src/tarantool/src/lib/msgpuck clean \
-    && : "---------- luarocks ----------" \
-    && wget -O luarocks.tar.gz "$LUAROCKS_URL" \
-    && mkdir -p /usr/src/luarocks \
-    && tar -xzf luarocks.tar.gz -C /usr/src/luarocks --strip-components=1 \
-    && (cd /usr/src/luarocks; \
-        ./configure; \
-        make build; \
-        make install) \
-    && rm -r /usr/src/luarocks \
     && rm -rf /usr/src/tarantool \
     && rm -rf /usr/src/gperftools \
     && rm -rf /usr/src/go \
     && : "---------- remove build deps ----------" \
     && apk del .build-deps
-
-COPY luarocks-config.lua /usr/local/etc/luarocks/config-5.1.lua
 
 RUN set -x \
     && apk add --no-cache --virtual .run-deps \
@@ -166,12 +122,12 @@ RUN set -x \
         gcc \
         g++ \
         postgresql-dev \
-        lua-dev \
         musl-dev \
         cyrus-sasl-dev \
         mosquitto-dev \
         libev-dev \
-        libressl-dev \
+        wget \
+        unzip \
     && mkdir -p /rocks \
     && : "---------- proj (for gis module) ----------" \
     && wget -O proj.tar.gz http://download.osgeo.org/proj/proj-4.9.3.tar.gz \
@@ -183,6 +139,7 @@ RUN set -x \
         make install) \
     && rm -r /usr/src/proj \
     && rm -rf /usr/src/proj \
+    && rm -rf /proj.tar.gz \
     && : "---------- geos (for gis module) ----------" \
     && wget -O geos.tar.bz2 http://download.osgeo.org/geos/geos-3.6.0.tar.bz2 \
     && mkdir -p /usr/src/geos \
@@ -193,44 +150,43 @@ RUN set -x \
         make install) \
     && rm -r /usr/src/geos \
     && rm -rf /usr/src/geos \
+    && rm -rf /geos.tar.bz2 \
     && : "---------- luarocks ----------" \
-    && luarocks install lua-term \
-    && luarocks install ldoc \
-    && luarocks install luautf8 \
-    && luarocks install $LUAROCK_SPACER_ROCKSPEC \
+    && cd / \
+    && : "ldoc" \
+    && tarantoolctl rocks install ldoc --server=http://rocks.moonscript.org \
+    && : "lua-term" \
+    && tarantoolctl rocks install lua-term \
+    && : "spacer" \
+    && tarantoolctl rocks install $LUAROCK_SPACER_ROCKSPEC \
     && : "avro" \
-    && luarocks install avro-schema $LUAROCK_AVRO_SCHEMA_VERSION \
+    && tarantoolctl rocks install avro-schema $LUAROCK_AVRO_SCHEMA_VERSION \
     && : "expirationd" \
-    && luarocks install expirationd $LUAROCK_EXPERATIOND_VERSION \
+    && tarantoolctl rocks install expirationd $LUAROCK_EXPERATIOND_VERSION \
     && : "queue" \
-    && luarocks install queue $LUAROCK_QUEUE_VERSION \
+    && tarantoolctl rocks install queue $LUAROCK_QUEUE_VERSION \
     && : "connpool" \
-    && luarocks install connpool $LUAROCK_CONNPOOL_VERSION \
-    && : "shard" \
-    && git clone $LUAROCK_SHARD_REPO /rocks/shard \
-    && git -C /rocks/shard checkout $LUAROCK_SHARD_TAG \
-    && (cd /rocks/shard && luarocks make *rockspec) \
+    && tarantoolctl rocks install connpool $LUAROCK_CONNPOOL_VERSION \
+    && : "vshard" \
+    && tarantoolctl rocks install vshard $LUAROCK_VSHARD_VERSION \
     && : "http" \
-    && luarocks install http $LUAROCK_HTTP_VERSION \
+    && tarantoolctl rocks install http $LUAROCK_HTTP_VERSION \
     && : "pg" \
-    && luarocks install pg $LUAROCK_TARANTOOL_PG_VERSION \
+    && tarantoolctl rocks install pg $LUAROCK_TARANTOOL_PG_VERSION \
     && : "mysql" \
-    && luarocks install mysql $LUAROCK_TARANTOOL_MYSQL_VERSION \
+    && tarantoolctl rocks install mysql $LUAROCK_TARANTOOL_MYSQL_VERSION \
     && : "memcached" \
-    && luarocks install memcached $LUAROCK_MEMCACHED_VERSION \
+    && tarantoolctl rocks install memcached $LUAROCK_MEMCACHED_VERSION \
     && : "prometheus" \
-    && luarocks install prometheus $LUAROCK_TARANTOOL_PROMETHEUS_VERSION \
-    && : "curl" \
-    && luarocks install tarantool-curl $LUAROCK_TARANTOOL_CURL_VERSION \
+    && tarantoolctl rocks install prometheus $LUAROCK_TARANTOOL_PROMETHEUS_VERSION \
     && : "mqtt" \
-    && luarocks install mqtt $LUAROCK_TARANTOOL_MQTT_VERSION \
+    && tarantoolctl rocks install mqtt $LUAROCK_TARANTOOL_MQTT_VERSION \
     && : "gis" \
-    && luarocks install gis $LUAROCK_TARANTOOL_GIS_VERSION \
+    && tarantoolctl rocks install gis $LUAROCK_TARANTOOL_GIS_VERSION \
     && : "gperftools" \
-    && luarocks install gperftools $LUAROCK_TARANTOOL_GPERFTOOLS_VERSION \
+    && tarantoolctl rocks install gperftools $LUAROCK_TARANTOOL_GPERFTOOLS_VERSION \
     && : "---------- remove build deps ----------" \
-    && apk del .build-deps \
-    && rm -rf /rocks
+    && apk del .build-deps
 
 RUN mkdir -p /var/lib/tarantool \
     && chown tarantool:tarantool /var/lib/tarantool \

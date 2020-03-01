@@ -4,19 +4,16 @@ MAINTAINER mail@racktear.com
 RUN groupadd tarantool \
     && adduser -g tarantool tarantool
 
-ENV TARANTOOL_VERSION=2.1.2-52-g154345fc5 \
-    TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
-    TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
-    CURL_REPO=https://github.com/curl/curl.git \
-    CURL_TAG=curl-7_64_0 \
-    LUAROCKS_URL=https://github.com/tarantool/luarocks/archive/6e6fe62d9409fe2103c0fd091cccb3da0451faf5.tar.gz \
-    LUAROCK_VSHARD_VERSION=0.1.8 \
-    LUAROCK_CHECKS_VERSION=3.0.0 \
+ARG TARANTOOL_VERSION=2.3.1-1-g4137134c0
+
+ENV TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
+    LUAROCK_VSHARD_VERSION=0.1.14 \
+    LUAROCK_CHECKS_VERSION=3.0.1 \
     LUAROCK_AVRO_SCHEMA_VERSION=3.0.3 \
     LUAROCK_EXPERATIOND_VERSION=1.0.1 \
     LUAROCK_QUEUE_VERSION=1.0.3 \
     LUAROCK_CONNPOOL_VERSION=1.1.1 \
-    LUAROCK_HTTP_VERSION=1.0.5 \
+    LUAROCK_HTTP_VERSION=1.1.0 \
     LUAROCK_MEMCACHED_VERSION=1.0.0 \
     LUAROCK_TARANTOOL_PG_VERSION=2.0.2 \
     LUAROCK_TARANTOOL_MYSQL_VERSION=2.0.1 \
@@ -33,7 +30,6 @@ RUN set -x \
         libstdc++ \
         readline \
         openssl \
-        yaml \
         lz4 \
         binutils \
         ncurses \
@@ -41,20 +37,21 @@ RUN set -x \
         lua \
         tar \
         zip \
+        zlib \
         unzip \
         libunwind \
         ca-certificates \
     && yum -y install \
         perl \
+        file \
         gcc-c++ \
         cmake \
         readline-devel \
         openssl-devel \
-        libyaml-devel \
+        zlib-devel \
         lz4-devel \
         binutils-devel \
         ncurses-devel \
-        lua-devel \
         make \
         git \
         libunwind-devel \
@@ -64,26 +61,16 @@ RUN set -x \
         go \
         wget \
     && : "---------- libicu ----------" \
-    && wget http://download.icu-project.org/files/icu4c/63.1/icu4c-63_1-src.tgz \
+    && wget https://github.com/unicode-org/icu/releases/download/release-65-1/icu4c-65_1-src.tgz \
     && mkdir -p /usr/src/icu \
-        && tar -xzf icu4c-63_1-src.tgz -C /usr/src/icu --strip-components=1 \
-        && rm icu4c-63_1-src.tgz \
+        && tar -xzf icu4c-65_1-src.tgz -C /usr/src/icu --strip-components=1 \
+        && rm icu4c-65_1-src.tgz \
     && (cd /usr/src/icu/source; \
         chmod +x runConfigureICU configure install-sh; \
         ./runConfigureICU Linux/gcc; \
         make; \
         make install; \
         echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf; \
-        ldconfig ) \
-    && : "---------- curl ----------" \
-    && mkdir -p /usr/src/curl \
-    && git clone "$CURL_REPO" /usr/src/curl \
-    && (cd /usr/src/curl; \
-        git checkout "$CURL_TAG"; \
-        ./buildconf; \
-        ./configure --with-ssl --prefix "/usr/local"; \
-        make -j; \
-        make install; \
         ldconfig ) \
     && : "---------- gperftools ----------" \
     && yum install -y gperftools-libs \
@@ -96,56 +83,27 @@ RUN set -x \
     && (cd /usr/src/tarantool; git submodule update --init --recursive;) \
     && (cd /usr/src/tarantool; \
        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo\
-             -DENABLE_BUNDLED_LIBYAML:BOOL=OFF\
+             -DENABLE_BUNDLED_LIBYAML:BOOL=ON\
              -DENABLE_BACKTRACE:BOOL=ON\
              -DENABLE_DIST:BOOL=ON\
              .) \
     && make -C /usr/src/tarantool -j\
     && make -C /usr/src/tarantool install \
-    && make -C /usr/src/tarantool clean \
-    && : "---------- small ----------" \
-    && (cd /usr/src/tarantool/src/lib/small; \
-        cmake -DCMAKE_INSTALL_PREFIX=/usr \
-              -DCMAKE_INSTALL_LIBDIR=lib \
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-              .) \
-    && make -C /usr/src/tarantool/src/lib/small \
-    && make -C /usr/src/tarantool/src/lib/small install \
-    && make -C /usr/src/tarantool/src/lib/small clean \
-    && : "---------- msgpuck ----------" \
-    && (cd /usr/src/tarantool/src/lib/msgpuck; \
-        cmake -DCMAKE_INSTALL_PREFIX=/usr \
-              -DCMAKE_INSTALL_LIBDIR=lib \
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-              .) \
-    && make -C /usr/src/tarantool/src/lib/msgpuck \
-    && make -C /usr/src/tarantool/src/lib/msgpuck install \
-    && make -C /usr/src/tarantool/src/lib/msgpuck clean \
-    && : "---------- luarocks ----------" \
-    && wget -O luarocks.tar.gz "$LUAROCKS_URL" \
-    && mkdir -p /usr/src/luarocks \
-    && tar -xzf luarocks.tar.gz -C /usr/src/luarocks --strip-components=1 \
-    && (cd /usr/src/luarocks; \
-        ./configure; \
-        make build; \
-        make install) \
-    && rm -r /usr/src/luarocks \
     && rm -rf /usr/src/tarantool \
     && rm -rf /usr/src/go \
     && rm -rf /usr/src/icu \
-    && rm -rf /usr/src/curl \
     && : "---------- remove build deps ----------" \
     && yum -y remove \
         perl \
+        file \
         gcc-c++ \
         cmake \
         readline-devel \
         openssl-devel \
-        libyaml-devel \
         lz4-devel \
+        zlib-devel \
         binutils-devel \
         ncurses-devel \
-        lua-devel \
         make \
         git \
         libunwind-devel \
@@ -160,8 +118,6 @@ RUN set -x \
     && rpm -qa | grep devel | xargs yum -y remove \
     && rm -rf /var/cache/yum
 
-
-COPY luarocks-config.lua /usr/local/etc/luarocks/config-5.1.lua
 
 RUN set -x \
     && yum -y install https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-redhat96-9.6-3.noarch.rpm \
@@ -180,7 +136,6 @@ RUN set -x \
         make \
         gcc-c++ \
         postgresql96-devel \
-        lua-devel \
         cyrus-sasl-devel \
         libev-devel \
         wget \
@@ -189,34 +144,36 @@ RUN set -x \
         openssl-devel \
     && mkdir -p /rocks \
     && : "---------- luarocks ----------" \
-    && luarocks install lua-term \
-    && luarocks install ldoc \
+    && : "lua-term" \
+    && tarantoolctl rocks install lua-term \
+    && : "ldoc" \
+    && tarantoolctl rocks install ldoc --server=http://rocks.moonscript.org \
     && : "vshard" \
-    && luarocks install vshard $LUAROCK_VSHARD_VERSION \
+    && tarantoolctl rocks install vshard $LUAROCK_VSHARD_VERSION \
     && : "checks" \
-    && luarocks install checks $LUAROCK_CHECKS_VERSION \
+    && tarantoolctl rocks install checks $LUAROCK_CHECKS_VERSION \
     && : "avro" \
-    && luarocks install avro-schema $LUAROCK_AVRO_SCHEMA_VERSION \
+    && tarantoolctl rocks install avro-schema $LUAROCK_AVRO_SCHEMA_VERSION \
     && : "expirationd" \
-    && luarocks install expirationd $LUAROCK_EXPERATIOND_VERSION \
+    && tarantoolctl rocks install expirationd $LUAROCK_EXPERATIOND_VERSION \
     && : "queue" \
-    && luarocks install queue $LUAROCK_QUEUE_VERSION \
+    && tarantoolctl rocks install queue $LUAROCK_QUEUE_VERSION \
     && : "connpool" \
-    && luarocks install connpool $LUAROCK_CONNPOOL_VERSION \
+    && tarantoolctl rocks install connpool $LUAROCK_CONNPOOL_VERSION \
     && : "http" \
-    && luarocks install http $LUAROCK_HTTP_VERSION \
+    && tarantoolctl rocks install http $LUAROCK_HTTP_VERSION \
     && : "pg" \
-    && luarocks install pg $LUAROCK_TARANTOOL_PG_VERSION \
+    && tarantoolctl rocks install pg $LUAROCK_TARANTOOL_PG_VERSION \
     && : "mysql" \
-    && luarocks install mysql $LUAROCK_TARANTOOL_MYSQL_VERSION \
+    && tarantoolctl rocks install mysql $LUAROCK_TARANTOOL_MYSQL_VERSION \
     && : "memcached" \
-    && luarocks install memcached $LUAROCK_MEMCACHED_VERSION \
+    && tarantoolctl rocks install memcached $LUAROCK_MEMCACHED_VERSION \
     && : "prometheus" \
-    && luarocks install prometheus $LUAROCK_TARANTOOL_PROMETHEUS_VERSION \
+    && tarantoolctl rocks install prometheus $LUAROCK_TARANTOOL_PROMETHEUS_VERSION \
     && : "gis" \
-    && luarocks install gis $LUAROCK_TARANTOOL_GIS_VERSION \
+    && tarantoolctl rocks install gis $LUAROCK_TARANTOOL_GIS_VERSION \
     && : "gperftools" \
-    && luarocks install gperftools $LUAROCK_TARANTOOL_GPERFTOOLS_VERSION \
+    && tarantoolctl rocks install gperftools $LUAROCK_TARANTOOL_GPERFTOOLS_VERSION \
     && : "---------- remove build deps ----------" \
     && rm -rf /rocks \
     && yum -y remove \

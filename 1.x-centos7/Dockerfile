@@ -10,22 +10,19 @@ RUN groupadd tarantool \
 ENV TARANTOOL_VERSION=${TARANTOOL_VERSION} \
     TARANTOOL_DOWNLOAD_URL=https://github.com/tarantool/tarantool.git \
     TARANTOOL_INSTALL_LUADIR=/usr/local/share/tarantool \
-    CURL_REPO=https://github.com/curl/curl.git \
-    CURL_TAG=curl-7_64_0 \
     LUAROCKS_URL=https://github.com/tarantool/luarocks/archive/6e6fe62d9409fe2103c0fd091cccb3da0451faf5.tar.gz \
     LUAROCK_SHARD_REPO=https://github.com/tarantool/shard.git \
     LUAROCK_SHARD_TAG=8f8c5a7 \
-    LUAROCK_SPACER_ROCKSPEC=https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-2.0.1-1.rockspec \
+    LUAROCK_SPACER_ROCKSPEC=https://raw.githubusercontent.com/igorcoding/tarantool-spacer/master/rockspecs/spacer-3.0.1-1.rockspec \
     LUAROCK_CHECKS_VERSION=1.0.0 \
     LUAROCK_AVRO_SCHEMA_VERSION=2.0.1 \
     LUAROCK_EXPERATIOND_VERSION=1.0.1 \
     LUAROCK_QUEUE_VERSION=1.0.2 \
     LUAROCK_CONNPOOL_VERSION=1.1.1 \
-    LUAROCK_HTTP_VERSION=1.0.1 \
+    LUAROCK_HTTP_VERSION=1.1.0 \
     LUAROCK_MEMCACHED_VERSION=1.0.0 \
     LUAROCK_TARANTOOL_PG_VERSION=2.0.1 \
     LUAROCK_TARANTOOL_MYSQL_VERSION=2.0.1 \
-    LUAROCK_TARANTOOL_CURL_VERSION=2.3.1 \
     LUAROCK_TARANTOOL_GIS_VERSION=1.0.0 \
     LUAROCK_TARANTOOL_PROMETHEUS_VERSION=1.0.0 \
     LUAROCK_TARANTOOL_GPERFTOOLS_VERSION=1.0.1
@@ -47,16 +44,19 @@ RUN set -x \
         lua \
         tar \
         zip \
+        zlib \
         unzip \
         libunwind \
         ca-certificates \
     && yum -y install \
         perl \
+        file \
         gcc-c++ \
         cmake \
         readline-devel \
         openssl-devel \
         libyaml-devel \
+        zlib-devel \
         lz4-devel \
         binutils-devel \
         ncurses-devel \
@@ -70,26 +70,16 @@ RUN set -x \
         go \
         wget \
     && : "---------- libicu ----------" \
-    && wget http://download.icu-project.org/files/icu4c/63.1/icu4c-63_1-src.tgz \
+    && wget http://download.icu-project.org/files/icu4c/64.2/icu4c-64_2-src.tgz \
     && mkdir -p /usr/src/icu \
-        && tar -xzf icu4c-63_1-src.tgz -C /usr/src/icu --strip-components=1 \
-        && rm icu4c-63_1-src.tgz \
+        && tar -xzf icu4c-64_2-src.tgz -C /usr/src/icu --strip-components=1 \
+        && rm icu4c-64_2-src.tgz \
     && (cd /usr/src/icu/source; \
         chmod +x runConfigureICU configure install-sh; \
         ./runConfigureICU Linux/gcc; \
         make; \
         make install; \
         echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf; \
-        ldconfig ) \
-    && : "---------- curl ----------" \
-    && mkdir -p /usr/src/curl \
-    && git clone "$CURL_REPO" /usr/src/curl \
-    && (cd /usr/src/curl; \
-        git checkout "$CURL_TAG"; \
-        ./buildconf; \
-        ./configure --with-ssl --prefix "/usr/local"; \
-        make -j; \
-        make install; \
         ldconfig ) \
     && : "---------- gperftools ----------" \
     && yum install -y gperftools-libs \
@@ -152,6 +142,7 @@ RUN set -x \
         readline-devel \
         openssl-devel \
         libyaml-devel \
+        zlib-devel \
         lz4-devel \
         binutils-devel \
         ncurses-devel \
@@ -165,6 +156,7 @@ RUN set -x \
         go \
         wget \
         perl \
+        file \
         kernel-headers \
         golang-src \
     && rpm -qa | grep devel | xargs yum -y remove \
@@ -227,8 +219,6 @@ RUN set -x \
     && luarocks install memcached $LUAROCK_MEMCACHED_VERSION \
     && : "prometheus" \
     && luarocks install prometheus $LUAROCK_TARANTOOL_PROMETHEUS_VERSION \
-    && : "curl" \
-    && luarocks install tarantool-curl $LUAROCK_TARANTOOL_CURL_VERSION \
     && : "gis" \
     && luarocks install gis $LUAROCK_TARANTOOL_GIS_VERSION \
     && : "gperftools" \
