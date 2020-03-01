@@ -63,7 +63,7 @@ namespace Progaudi.Tarantool.Bot.Controllers
         {
             using (var client = new HttpClient())
             {
-                var message = new HttpRequestMessage(HttpMethod.Post, "https://api.travis-ci.org/repo/progaudi%2Ftarantool-docker/requests ");
+                var message = new HttpRequestMessage(HttpMethod.Post, "https://api.travis-ci.com/repo/progaudi%2Ftarantool-docker/requests ");
                 message.Headers.Accept.ParseAdd("application/json");
                 message.Headers.Add("Travis-API-Version", "3");
                 message.Headers.Authorization = new AuthenticationHeaderValue("token", Startup.TravisToken);
